@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../static/analizador.css">
+    <title>Sistema Analizador</title>
+</head>
+
+<body>
+    <form id="codeForm">
+        <h1>Analizador Lexico, Sintactico, Semantico</h1>
+        <textarea name="code" id="code" rows="10" cols="50"></textarea><br>
+        <button type="button" onclick="analyzeCode()">Analizar</button>
+    </form>
+    <div id="result">
+        <div class="section" id="semantic-result"></div>
+        <div class="section" id="syntactic-result"></div>
+        <div class="section" id="lexical-result"></div>
+    </div>
+ <script>
+        function analyzeCode() {
+            const form = document.getElementById('codeForm');
+            const formData = new FormData(form);
+            fetch('/analyze', {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => response.json())
+                .then(data => {
+                    let semanticResultDiv = document.getElementById('semantic-result');
+                    let syntacticResultDiv = document.getElementById('syntactic-result');
+                    let lexicalResultDiv = document.getElementById('lexical-result');
+                    let errors = data.errors;
+                    let syntaxErrors = data.syntax_errors;
+
+                    if (errors && errors.length > 0) {
+                        semanticResultDiv.innerHTML = '<h3>Analisis semantico error:</h3><ul>' + errors.map(error => '<li>' + error + '</li>').join('') + '</ul>';
+                    } else {
+                        semanticResultDiv.innerHTML = '<h3>Analisis semantico:</h3><p>' + data.message + '</p>';
+                    }
+
+                    if (syntaxErrors && syntaxErrors.length > 0) {
+                        syntacticResultDiv.innerHTML = '<h3>Analisis sintactico error:</h3><ul>' + syntaxErrors.map(error => '<li>' + error + '</li>').join('') + '</ul>';
+                    } else {
+                        syntacticResultDiv.innerHTML = '<h3>Analisis sintactico:</h3><p>Análisis sintáctico correcto.</p>';
+                    }
+
+                    let tableHTML = '<h3>Analisis lexico</h3><table><tr><th>Token</th><th>Reservada</th><th>Identificador</th><th>Número</th><th>Símbolo</th></tr>';
+                    data.lexical.forEach(token => {
+                        let isReserved = token.category === 'Reservada' ? 'x' : '';
+                        let isIdent = token.category === 'Identificador' ? 'x' : '';
+                        let isNum = token.category === 'Número' ? 'x' : '';
+                        let isSymbol = token.category === 'Símbolo' ? 'x' : '';
+                        tableHTML += `<tr>
+                            <td>${token.value}</td>
+                            <td>${isReserved}</td>
+                            <td>${isIdent}</td>
+                            <td>${isNum}</td>
+                            <td>${isSymbol}</td>
+                        </tr>`;
+                    });
+                    tableHTML += '</table>';
+
+                    let totalsHTML = `<div class="totals">
+                                      <p>Reservadas: ${data.totals.Reservada}</p>
+                                      <p>Identificadores: ${data.totals.Identificador}</p>
+                                      <p>Números: ${data.totals.Número}</p>
+                                      <p>Símbolos: ${data.totals.Símbolo}</p>
+                                      </div>`;
+
+                    lexicalResultDiv.innerHTML = tableHTML + totalsHTML;
+                });
+        }
+    </script>
+</body>
+
+</html>
